@@ -69,6 +69,9 @@ jobs:
           python -c "from analyzer import GeminiAnalyzer; print('✅ analyzer')"
           echo "✅ 所有模块导入成功"
 
+      - name: 🔐 检查每日工作流不输出 Secrets 和自选股配置
+        run: python tests/test_workflow_secret_redaction.py
+
   # ==================== Docker 构建测试 ====================
   docker:
     name: 🐳 Docker 构建
