@@ -37,7 +37,7 @@ class ScheduledWorkflowSecretRedactionTests(unittest.TestCase):
     def test_echo_commands_do_not_reference_secrets_or_watchlist(self) -> None:
         echo_lines = [
             line for line in self.workflow.splitlines()
-            if re.match(r"^\\s*echo\\b", line)
+            if re.match(r"^\s*echo\b", line)
         ]
         self.assertTrue(echo_lines, "Expected workflow output statements to review")
         for line in echo_lines:
@@ -48,18 +48,18 @@ class ScheduledWorkflowSecretRedactionTests(unittest.TestCase):
     def test_workflow_does_not_enable_shell_xtrace(self) -> None:
         self.assertNotRegex(
             self.workflow,
-            r"(?m)^\\s*set\\s+-[^\\n]*x(?:trace)?(?:\\s|$)",
+            r"(?m)^\s*set\s+-[^\n]*x(?:trace)?(?:\s|$)",
         )
         self.assertNotRegex(
             self.workflow,
-            r"(?m)^\\s*set\\s+-o\\s+xtrace\\s*$",
+            r"(?m)^\s*set\s+-o\s+xtrace\s*$",
         )
 
     def test_key_length_and_secret_metadata_are_not_echoed(self) -> None:
         self.assertNotRegex(
             self.workflow,
-            r"(?i)(?:key|token|secret|webhook)[^\\n]*(?:length|size)|"
-            r"(?:length|size)[^\\n]*(?:key|token|secret|webhook)",
+            r"(?i)(?:key|token|secret|webhook)[^\n]*(?:length|size)|"
+            r"(?:length|size)[^\n]*(?:key|token|secret|webhook)",
         )
 
 
