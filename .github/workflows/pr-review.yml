@@ -30,7 +30,7 @@ jobs:
   # ==================== 安全检查（检测敏感文件修改）====================
   security-check:
     name: 🔒 安全检查
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     outputs:
       safe_to_run: ${{ steps.check_sensitive.outputs.safe_to_run }}
     
@@ -70,9 +70,9 @@ jobs:
   # ==================== 静态检查（先于 AI 审查）====================
   auto-check:
     name: 🔍 静态检查
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     needs: [security-check]
-    if: needs.security-check.outputs.safe_to_run == 'true'
+    if: ${{ vars.DAILY_STOCK_RUNNER_STORAGE_VERIFICATION == 'vol2-device-proven' && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository) && needs.security-check.outputs.safe_to_run == 'true' }}
     outputs:
       syntax_ok: ${{ steps.syntax.outputs.syntax_ok }}
       has_py_changes: ${{ steps.check_files.outputs.has_py_changes }}
@@ -166,9 +166,10 @@ jobs:
   # ==================== AI 代码审查（依赖静态检查通过）====================
   ai-review:
     name: 🤖 AI 代码审查
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     needs: [security-check, auto-check]
     if: |
+      vars.DAILY_STOCK_RUNNER_STORAGE_VERIFICATION == 'vol2-device-proven' && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository) &&
       needs.security-check.outputs.safe_to_run == 'true' &&
       needs.auto-check.result == 'success' &&
       needs.auto-check.outputs.has_py_changes == 'true' &&
@@ -228,7 +229,7 @@ jobs:
   # ==================== PR 标签自动分类 ====================
   labeler:
     name: 🏷️ 自动标签
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     
     steps:
       - name: 📥 检出代码
@@ -307,9 +308,9 @@ jobs:
   # ==================== 自动评论检查结果 ====================
   comment:
     name: 💬 审查报告
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     needs: [security-check, auto-check, ai-review]
-    if: always() && github.event_name == 'pull_request_target' && needs.security-check.outputs.safe_to_run == 'true'
+    if: ${{ always() && github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository && vars.DAILY_STOCK_RUNNER_STORAGE_VERIFICATION == 'vol2-device-proven' && needs.security-check.outputs.safe_to_run == 'true' }}
     
     steps:
       - name: 📥 检出代码
