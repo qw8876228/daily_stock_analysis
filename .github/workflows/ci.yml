@@ -29,7 +29,7 @@ jobs:
   # ==================== 核心检查（必须通过）====================
   check:
     name: ✅ 代码检查
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     
     steps:
       - name: 📥 检出代码
@@ -72,13 +72,24 @@ jobs:
   # ==================== Docker 构建测试 ====================
   docker:
     name: 🐳 Docker 构建
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, daily-stock-ci]
     needs: [check]
     
     steps:
       - name: 📥 检出代码
         uses: actions/checkout@v4
       
+      - name: Verify Docker daemon data root is on /vol2
+        shell: bash
+        run: |
+          set -euo pipefail
+          DOCKER_ROOT="$(docker info --format '{{.DockerRootDir}}')"
+          REAL_DOCKER_ROOT="$(realpath -e -- "$DOCKER_ROOT")"
+          VOL2_DEVICE="$(stat -c '%d' /vol2)"
+          DOCKER_DEVICE="$(stat -c '%d' "$REAL_DOCKER_ROOT")"
+          [[ "$REAL_DOCKER_ROOT" == /vol2 || "$REAL_DOCKER_ROOT" == /vol2/* ]] || { echo "::error::Docker data root is outside /vol2: $REAL_DOCKER_ROOT"; exit 1; }
+          [[ "$DOCKER_DEVICE" == "$VOL2_DEVICE" ]] || { echo "::error::Docker data root is not on the verified /vol2 device."; exit 1; }
+          printf 'DOCKER_DATA_ROOT_VERIFIED=%s device=%s\n' "$REAL_DOCKER_ROOT" "$DOCKER_DEVICE"
       - name: 🐳 构建镜像
         run: |
           docker build -t stock-analysis:test .
